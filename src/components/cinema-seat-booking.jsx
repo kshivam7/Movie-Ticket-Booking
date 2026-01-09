@@ -14,7 +14,7 @@ const CinemaSeatBooking =({
   },
 
   bookedSeats = [],
-  currency = "$",
+  currency = "₹",
   onBookingComplete=()=>{},
   title = "Cinema Hall Booking",
   subtitle = "Select your preferred seats",
@@ -110,7 +110,30 @@ const CinemaSeatBooking =({
   
   };
 
-  const handleSeatClick = (rowIndex, seatIndex)=>{}
+  const handleSeatClick = (rowIndex, seatIndex)=>{
+    const seat = seats[rowIndex][seatIndex];
+    if (seat.status ==="booked") return;
+
+    const isCurrentlySelected= seat.selected;
+
+    setSeats((prevSeats)=>{
+      return prevSeats.map((row,rIdx)=>
+        row.map((s,sIdx)=>{
+        if(rIdx === rowIndex && sIdx === seatIndex){
+          return {...s, selected: !s.selected};
+        }
+        return s;
+        })
+      );
+    });
+
+    if(isCurrentlySelected){
+      setSelectedSeats((prevSeats)=> prevSeats.filter((s)=> s.id !== seat.id));
+    }
+    else{
+      setSelectedSeats((prev)=> [...prev, seat]);
+    }
+  }; 
 
   const renderSeatSection =(seatRow, startIndex, endindex)=>{
     return( <div className='flex'>
@@ -136,10 +159,46 @@ const CinemaSeatBooking =({
         ...config
       };
     }
-  )
+  );
+
+  const getTotalPrice = ()=>{
+    return selectedSeats.reduce((total, seat)=>total+ seat.price, 0);
+  }
+
+  const handleBooking = ()=>{
+    if(selectedSeats.length===0){
+      alert("please select at least one seat");
+      return;
+    }
+    setSeats((prevSeats)=>{
+      return prevSeats.map((row)=>
+        row.map((seat)=>{
+          if (selectedSeats.some((selected)=> selected.id === seat.id)){
+            return {...seat, status:"Booked", selected:false};
+          }
+          return seat;
+        })
+      );
+    });
+
+    // call callback
+
+    onBookingComplete({
+      seats:selectedSeats,
+      totalPrice: getTotalPrice(),
+      seatIds: selectedSeats.map((seat)=> seat.id),
+    });
+
+    alert(
+      `Successfully booked ${selectedSeats.length} seats(s) for ${currency}${getTotalPrice()}`
+    );
+
+    setSelectedSeats([]);
+  };
+
 
   return (
-    <div className='w-full min-h-screen bg-gray-50 p-4'>
+    <div className='w-full min-h-screen bg-gray-50 p-1'>
       {/* title */}
       <div className='max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6'>
         <h1 className='text-2xl lg:text-3xl font-bold text-center mb-2 text-gray-800'>
@@ -151,7 +210,7 @@ const CinemaSeatBooking =({
       {/* Screen */}
       <div className='mb-8'>
         <div className='w-full h-4 bg-linear-to-r from-gray-300 via-gray-400 to-gray-300 rounded-lg mb-2 shadow-inner'/>
-        <p className='text-center text-sm text-gray-500 font-medium'>
+        <p className='text-center text-sm text-gray-600 font-medium'>
           SCREEN
         </p>
 
@@ -195,10 +254,57 @@ const CinemaSeatBooking =({
             </div>
           );
           })}
+
+          <div className='flex flex-center'>
+            <div className='w-6 h-6 bg-green-500 border-2 border-green-600 rounded-t-lg mr-2'></div>
+            <span className='text-sm'>Selected</span>
+          </div>
+          <div className='flex flex-center'>
+            <div className='w-6 h-6 bg-gray-500 border-2 border-gray-600 rounded-t-lg mr-2'></div>
+            <span className='text-sm'>Booked</span>
+          </div>
+
       </div>
 
-      {/* Summary */}
+      {/* Booking Summary */}
+      <div className='bg-gray-50rounded-lg p-4 mb-4'>
+        <h3 className='font-bold text-lg mb-2'>Booking Summary</h3>
+
+        {selectedSeats.length >0 ?(
+          <div>
+             <p className='mb-2'>
+              Selected Seats : {" "}
+              <span className='font-medium'>
+                {selectedSeats.map((s)=>s.id).join(",")}
+              </span>
+             </p>
+             <p className='mb-2'>
+              Number of Seats:{" "}
+              <span className='font-medium'>{selectedSeats.length}</span>
+             </p>
+             <p className='text-xl font-bold text-green-600'>
+              Total:{currency}
+              {getTotalPrice()}
+             </p>
+          </div>
+        ):
+        ( <p className='text-gray-500'>No Seats Selected</p>
+
+        )}
+      </div>
+      
+      
       {/* Book Button */}
+        <button onClick={handleBooking}
+        disabled= {selectedSeats.length===0}
+        className={`w-full py-3 px-6 rounded-lg font-bold text-lg transition-all duration-200
+        ${selectedSeats.length>0 ? "bg-green-500 hover:bg-green-600 text-white transform hover:scale-105"
+        :"bg-gray-300 text-gray-500 cursor-not-allowed"}`}
+        >
+          {selectedSeats.length>0? `Book ${selectedSeats.length} Seat(s) - ${currency}${getTotalPrice()}`
+          :"Select Seats to Book"}
+        </button>
+
       </div>
       
       
